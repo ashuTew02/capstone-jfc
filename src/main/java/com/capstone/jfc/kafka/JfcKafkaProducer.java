@@ -2,6 +2,8 @@ package com.capstone.jfc.kafka;
 
 import com.capstone.jfc.model.EventType;
 import com.capstone.jfc.model.Job;
+import com.capstone.jfc.model.KafkaTopic;
+
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
@@ -26,22 +28,27 @@ public class JfcKafkaProducer {
             System.out.println("3. JFC sent ScanRequestJobEvent id: " + job.getEventId() + "to topic: " + topic);
         } else if(type == EventType.SCAN_PARSE_JOB) {
             System.out.println("8. JFC sent ScanParseJobEvent id: " + job.getEventId() + "to topic: " + topic);
+        } else if(type == EventType.STATE_UPDATE_JOB) {
+            System.out.println("JFC sent StateUpdateJobEvent id: " + job.getEventId() + "to topic: " + topic);
         }
 
         System.out.println("Sent job to topic: " + topic + " with ID: " + job.getEventId());
     }
 
     private String determineTopic(EventType eventType) {
-        // Adjust to match your real routing:
+
         switch (eventType) {
             case SCAN_REQUEST_JOB:
-                return "toolscheduler_jfc";
+                return KafkaTopic.TOOLSCHEDULER_JFC.getTopicName();
             case SCAN_PARSE_JOB:
-                return "parser_jfc";
+                return KafkaTopic.PARSER_JFC.getTopicName();
+            case STATE_UPDATE_JOB:
+                return KafkaTopic.BGJOBS_JFC.getTopicName();
+            case ACK_STATE_UPDATE_JOB:
             case ACK_SCAN_REQUEST_JOB:
             case ACK_SCAN_PARSE_JOB:
             default:
-                return "ack_job";
+                return KafkaTopic.ACK_JOB.getTopicName();
         }
     }
 }

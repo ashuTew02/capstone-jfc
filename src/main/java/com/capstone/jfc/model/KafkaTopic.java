@@ -1,10 +1,11 @@
 package com.capstone.jfc.model;
 
 public enum KafkaTopic {
-    TOOLSCHEDULER_JFC("toolscheduler_jfc"),
     AUTHSERVER_JFC("authserver_jfc"),
+    TOOLSCHEDULER_JFC("toolscheduler_jfc"),
     PARSER_JFC("parser_jfc"),
-    ACK_JOB("ack_job");
+    ACK_JOB("ack_job"),
+    BGJOBS_JFC("bgjobs_jfc");
 
     private final String topicName;
 

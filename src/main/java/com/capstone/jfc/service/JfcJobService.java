@@ -44,6 +44,7 @@ public class JfcJobService {
         } catch (JsonProcessingException e) {
             // In production, handle properly or throw a custom exception
             job.setPayload("{}");
+            System.out.println(e.getMessage());
         }
 
         return jobRepository.save(job);
