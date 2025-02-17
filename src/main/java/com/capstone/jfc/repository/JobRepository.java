@@ -17,6 +17,8 @@ import java.util.List;
 @Repository
 public interface JobRepository extends JpaRepository<Job, Long> {
 
+    List<Job> findByToolAndStatusAndEventType(Tool tool, JobStatus status, EventType eventType);
+    int countByStatusAndToolAndEventTypeAndTenantId(JobStatus status, Tool tool, EventType eventType, Long TenantId);
     List<Job> findByStatus(JobStatus status);
 
     // For counting how many are in-progress for a given type+tool+tenant

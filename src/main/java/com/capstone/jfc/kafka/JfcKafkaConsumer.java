@@ -68,10 +68,11 @@ public class JfcKafkaConsumer {
 
             if (event instanceof AckScanRequestJobEvent ackReqEvent) {
                 AckJobEventPayload payload = ackReqEvent.getPayload();
-                Thread.sleep(5000);
+                // Thread.sleep(5000);
                 jfcJobService.updateJobStatus(payload.getJobId(), payload.getJobStatus());
                 System.out.println("5.1 JFC Received AckScanRequestJobEvent id: " + ackReqEvent.getEventId() + " and sets status to SUCCESS.");
             } else if (event instanceof AckScanParseJobEvent ackParseEvent) {
+                // Thread.sleep(5000);
                 AckJobEventPayload payload = ackParseEvent.getPayload();
                 jfcJobService.updateJobStatus(payload.getJobId(), payload.getJobStatus());
                 System.out.println("12. JFC Received AckScanParseJobEvent id: " + ackParseEvent.getEventId() + " and sets status to SUCCESS.");

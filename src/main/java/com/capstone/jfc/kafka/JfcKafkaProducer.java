@@ -4,6 +4,8 @@ import com.capstone.jfc.model.EventType;
 import com.capstone.jfc.model.Job;
 import com.capstone.jfc.model.KafkaTopic;
 
+import java.util.List;
+
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
@@ -33,6 +35,12 @@ public class JfcKafkaProducer {
         }
 
         System.out.println("Sent job to topic: " + topic + " with ID: " + job.getEventId());
+    }
+
+    public void sendJobList(List<Job> jobs) {
+        for(Job job: jobs) {
+            sendEvent(job);
+        }
     }
 
     private String determineTopic(EventType eventType) {

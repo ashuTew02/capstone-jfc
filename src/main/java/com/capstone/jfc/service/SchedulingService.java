@@ -1,8 +1,9 @@
 package com.capstone.jfc.service;
 
+import com.capstone.jfc.model.EventType;
 import com.capstone.jfc.model.Job;
 import com.capstone.jfc.model.JobStatus;
-// import com.capstone.jfc.model.Tool;
+import com.capstone.jfc.model.Tool;
 // import com.capstone.jfc.model.EventType;
 import com.capstone.jfc.kafka.JfcKafkaProducer;
 import com.capstone.jfc.repository.JobRepository;
@@ -13,6 +14,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -23,69 +28,86 @@ public class SchedulingService {
     private final JobRepository jobRepository;
     private final ConcurrencyConfigService concurrencyConfigService;
     private final JfcKafkaProducer kafkaProducer;
+    private final JfcJobService jobService;
 
     @Value("${scheduler.interval-in-seconds}")
     private int schedulingIntervalInSeconds;
+    private final Object schedulingLock = new Object();
 
     public SchedulingService(JobRepository jobRepository,
                              ConcurrencyConfigService concurrencyConfigService,
-                             JfcKafkaProducer kafkaProducer) {
+                             JfcKafkaProducer kafkaProducer,
+                             JfcJobService jobService) {
         this.jobRepository = jobRepository;
         this.concurrencyConfigService = concurrencyConfigService;
         this.kafkaProducer = kafkaProducer;
+        this.jobService = jobService;
     }
 
     @Scheduled(fixedRateString = "${scheduler.interval-in-seconds}000")
+    public void scheduleJobsPeriodically() {
+        scheduleJobs();
+    }
+
     @Transactional
     public void scheduleJobs() {
-        // STEP 1: Load concurrency configs
-        ConcurrencyConfigService.ConcurrencyConfigData cfgData = concurrencyConfigService.loadAllConcurrencyConfigs();
-        Map<String, Integer> typeToolMap = cfgData.getTypeToolMap(); // e.g. { "SCAN_REQUEST_JOB:code-scan" -> 2 }
-        Map<Long, Integer> tenantMap = cfgData.getTenantMap();       // e.g. { 1 -> 3, 2 -> 2 }
+        synchronized (schedulingLock)
+        {
 
-        // STEP 2: Fetch all READY jobs
-        List<Job> readyJobs = jobRepository.findByStatus(JobStatus.READY);
+            ConcurrencyConfigService.ConcurrencyConfigData cfgData = concurrencyConfigService.loadAllConcurrencyConfigs();
+            Map<String, Integer> typeToolMap = cfgData.getTypeToolMap(); // e.g. { "SCAN_REQUEST_JOB:code-scan" -> 2 }
+            Map<Long, Integer> tenantMap = cfgData.getTenantMap(); 
 
-        // Scheduling
-        for (Job job : readyJobs) {
-            if (canScheduleJob(job, typeToolMap, tenantMap)) {
-                System.out.println("Job scheduled: " + job.toString());
-                // Mark as IN_PROGRESS
-                job.setStatus(JobStatus.IN_PROGRESS);
-                jobRepository.save(job);
-                System.out.println("Job set to in progress: " + job.toString());
-
-
-                // Send event to the appropriate topic
-                kafkaProducer.sendEvent(job);
+            for(Tool tool: Tool.values()) {
+                for(EventType eventType: EventType.values()) {
+                    if(eventType.name().startsWith("ACK")) {
+                        continue;
+                    }
+                    List<Job> jobsToBeScheduled = scheduleJobs(tool, eventType, typeToolMap, tenantMap);
+                    if (jobsToBeScheduled.isEmpty()) continue;
+                    jobService.updateJobListStatus(jobsToBeScheduled, JobStatus.IN_PROGRESS);
+                    kafkaProducer.sendJobList(jobsToBeScheduled);
+                }
             }
         }
     }
 
-    private boolean canScheduleJob(Job job,
-                                   Map<String, Integer> typeToolMap,
-                                   Map<Long, Integer> tenantMap) {
+    public List<Job> scheduleJobs(Tool tool, EventType eventType, Map<String, Integer> typeToolMap, Map<Long, Integer> tenantMap) {
+        
+        // 1) concurrency limit for the job type
+        String jobTypeKey = eventType.name() + ":" + tool.getValue();
+        int typeToolLimit = typeToolMap.get(jobTypeKey);
 
-        // 1. Check type+tool concurrency
-        String typeToolKey = job.getEventType().name() + ":" + job.getTool().getValue();
-        System.out.println("TYPE_TOOL_MAP:::::::::::: "+typeToolMap.toString());
-        System.out.println("TENANT_MAP:::::::::::: "+tenantMap.toString());
-        System.out.println("typeToolKey:::::::::::: "+typeToolKey);                            
-        int maxTypeTool = typeToolMap.getOrDefault(typeToolKey, 5); // default = 5 if not set
-        long currentCountForTypeTool = jobRepository.countByStatusAndEventTypeAndTool(
-                JobStatus.IN_PROGRESS, job.getEventType(), job.getTool());
-        if (currentCountForTypeTool >= maxTypeTool) {
-            return false;
+        long inProgressCount = jobRepository.countByStatusAndEventTypeAndTool(JobStatus.IN_PROGRESS, eventType, tool);
+        int availableSlots = typeToolLimit - (int)inProgressCount;
+        if (availableSlots <= 0) {
+            return Collections.emptyList();
         }
 
-        // 2. Check tenant concurrency
-        Long tenantId = job.getTenantId();
-        int maxTenant = tenantMap.getOrDefault(tenantId, 5); // default = 5 if not set
-        long currentCountForTenant = jobRepository.countByStatusAndTenantId(JobStatus.IN_PROGRESS, tenantId);
-        if (currentCountForTenant >= maxTenant) {
-            return false;
-        }
+        List<Job> readyJobs = jobRepository.findByToolAndStatusAndEventType(tool, JobStatus.READY, eventType);
+        if (readyJobs.isEmpty()) return new ArrayList<>();
+        
+        List<Job> scheduled = new ArrayList<>();
+        Map<Long, Long> tenantInProgressMap = new HashMap<>();
+        for (Job j : readyJobs) {
+            if (scheduled.size() >= availableSlots) break;
 
-        return true;
+            long tenantCount = jobRepository.countByStatusAndToolAndEventTypeAndTenantId(JobStatus.IN_PROGRESS, tool, eventType, j.getTenantId());
+            tenantInProgressMap.putIfAbsent(j.getTenantId(), tenantCount);
+            
+            int tenantLimit = tenantMap.get(j.getTenantId());
+            if (tenantInProgressMap.get(j.getTenantId()) < tenantLimit) {
+                // schedule
+                j.setStatus(JobStatus.READY);
+                // j.setUpdatedAt(LocalDateTime.now());
+                jobRepository.save(j);
+                scheduled.add(j);
+
+                // occupant
+                tenantInProgressMap.put(j.getTenantId(), tenantInProgressMap.get(j.getTenantId()) + 1);
+            }
+        }
+        return scheduled;
     }
+
 }

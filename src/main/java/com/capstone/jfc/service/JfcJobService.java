@@ -12,7 +12,7 @@ import jakarta.transaction.Transactional;
 
 import org.springframework.stereotype.Service;
 
-import java.util.UUID;
+import java.util.List;
 
 @Service
 @Transactional
@@ -67,5 +67,15 @@ public class JfcJobService {
         System.out.println("Job updated. ID=" + updatedJob.getId() 
                            + " new status=" + updatedJob.getStatus());
         return updatedJob;
+    }
+
+    @Transactional
+    public void updateJobListStatus(List<Job> jobs, JobStatus status) {
+
+        for(Job job: jobs) {
+            String eventId = job.getEventId();
+            jobRepository.updateStatusByEventId(eventId, status.name());
+
+        }
     }
 }
