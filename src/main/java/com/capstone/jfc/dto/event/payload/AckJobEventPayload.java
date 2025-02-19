@@ -3,19 +3,19 @@ package com.capstone.jfc.dto.event.payload;
 import com.capstone.jfc.model.JobStatus;
 
 public class AckJobEventPayload {
-    private String jobId;
+    private Long jobId;
     private JobStatus jobStatus;
 
     public AckJobEventPayload() {}
 
-    public AckJobEventPayload(String jobId, JobStatus jobStatus) {
+    public AckJobEventPayload(Long jobId, JobStatus jobStatus) {
         this.jobId = jobId;
         this.jobStatus = jobStatus;
     }
-    public String getJobId() {
+    public Long getJobId() {
         return jobId;
     }
-    public void setJobId(String jobId) {
+    public void setJobId(Long jobId) {
         this.jobId = jobId;
     }
     public JobStatus getJobStatus() {

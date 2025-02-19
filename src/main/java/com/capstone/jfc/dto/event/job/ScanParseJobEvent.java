@@ -1,8 +1,9 @@
-package com.capstone.jfc.dto.event;
+package com.capstone.jfc.dto.event.job;
 
 import java.util.UUID;
 
-import com.capstone.jfc.dto.event.payload.ScanParseJobEventPayload;
+import com.capstone.jfc.dto.event.Event;
+import com.capstone.jfc.dto.event.payload.job.ScanParseJobEventPayload;
 import com.capstone.jfc.model.EventType;
 
 public class ScanParseJobEvent implements Event<ScanParseJobEventPayload>{

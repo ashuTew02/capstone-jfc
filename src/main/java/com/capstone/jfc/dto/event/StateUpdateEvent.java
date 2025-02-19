@@ -2,22 +2,22 @@ package com.capstone.jfc.dto.event;
 
 import java.util.UUID;
 
-import com.capstone.jfc.dto.event.payload.StateUpdateJobEventPayload;
+import com.capstone.jfc.dto.event.payload.StateUpdateEventPayload;
 import com.capstone.jfc.model.EventType;
 
-public final class StateUpdateJobEvent implements Event<StateUpdateJobEventPayload> {
-    private StateUpdateJobEventPayload payload;
+public final class StateUpdateEvent implements Event<StateUpdateEventPayload> {
+    private StateUpdateEventPayload payload;
     private String eventId;
-    private EventType type = EventType.STATE_UPDATE_JOB;
+    private EventType type = EventType.STATE_UPDATE;
 
 
-    public StateUpdateJobEvent(StateUpdateJobEventPayload payload) {
+    public StateUpdateEvent(StateUpdateEventPayload payload) {
         this.eventId = UUID.randomUUID().toString();
         this.payload = payload;
     }
 
     
-    public StateUpdateJobEvent() {
+    public StateUpdateEvent() {
         this.eventId = UUID.randomUUID().toString();
     }
 
@@ -28,7 +28,7 @@ public final class StateUpdateJobEvent implements Event<StateUpdateJobEventPaylo
     }
 
     @Override
-    public StateUpdateJobEventPayload getPayload() {
+    public StateUpdateEventPayload getPayload() {
         return payload;
     }
 

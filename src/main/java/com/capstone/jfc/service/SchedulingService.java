@@ -3,6 +3,7 @@ package com.capstone.jfc.service;
 import com.capstone.jfc.model.EventType;
 import com.capstone.jfc.model.Job;
 import com.capstone.jfc.model.JobStatus;
+import com.capstone.jfc.model.JobType;
 import com.capstone.jfc.model.Tool;
 // import com.capstone.jfc.model.EventType;
 import com.capstone.jfc.kafka.JfcKafkaProducer;
@@ -59,10 +60,8 @@ public class SchedulingService {
             Map<Long, Integer> tenantMap = cfgData.getTenantMap(); 
 
             for(Tool tool: Tool.values()) {
-                for(EventType eventType: EventType.values()) {
-                    if(eventType.name().startsWith("ACK")) {
-                        continue;
-                    }
+                for(JobType jobType: JobType.values()) {
+                    EventType eventType = jobType.toEventType();
                     List<Job> jobsToBeScheduled = scheduleJobs(tool, eventType, typeToolMap, tenantMap);
                     if (jobsToBeScheduled.isEmpty()) continue;
                     jobService.updateJobListStatus(jobsToBeScheduled, JobStatus.IN_PROGRESS);
@@ -76,7 +75,13 @@ public class SchedulingService {
         
         // 1) concurrency limit for the job type
         String jobTypeKey = eventType.name() + ":" + tool.getValue();
-        int typeToolLimit = typeToolMap.get(jobTypeKey);
+        int typeToolLimit;
+        try {
+            typeToolLimit = typeToolMap.get(jobTypeKey);
+        } catch (Exception e) {
+            System.out.println("No Config available for tool: " + tool.getValue() + "and eventType: " + eventType);
+            return new ArrayList<>();
+        }
 
         long inProgressCount = jobRepository.countByStatusAndEventTypeAndTool(JobStatus.IN_PROGRESS, eventType, tool);
         int availableSlots = typeToolLimit - (int)inProgressCount;
@@ -95,7 +100,13 @@ public class SchedulingService {
             long tenantCount = jobRepository.countByStatusAndToolAndEventTypeAndTenantId(JobStatus.IN_PROGRESS, tool, eventType, j.getTenantId());
             tenantInProgressMap.putIfAbsent(j.getTenantId(), tenantCount);
             
-            int tenantLimit = tenantMap.get(j.getTenantId());
+            int tenantLimit;
+            try {
+                tenantLimit = tenantMap.get(j.getTenantId());
+            } catch (Exception e) {
+                System.out.println("No Config Available for tenantId: " + j.getTenantId());
+                return new ArrayList<>();
+            }
             if (tenantInProgressMap.get(j.getTenantId()) < tenantLimit) {
                 // schedule
                 j.setStatus(JobStatus.READY);

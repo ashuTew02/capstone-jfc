@@ -13,6 +13,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface JobRepository extends JpaRepository<Job, Long> {
@@ -20,7 +21,7 @@ public interface JobRepository extends JpaRepository<Job, Long> {
     List<Job> findByToolAndStatusAndEventType(Tool tool, JobStatus status, EventType eventType);
     int countByStatusAndToolAndEventTypeAndTenantId(JobStatus status, Tool tool, EventType eventType, Long TenantId);
     List<Job> findByStatus(JobStatus status);
-
+    // Optional<Job> findById(Long id);
     // For counting how many are in-progress for a given type+tool+tenant
     long countByStatusAndEventTypeAndTool(JobStatus status, 
                                           EventType eventType, 
@@ -39,6 +40,12 @@ public interface JobRepository extends JpaRepository<Job, Long> {
     @Query(value = "UPDATE jobs SET status = :status, updated_at = NOW() WHERE event_id = :eventId", 
            nativeQuery = true)
     int updateStatusByEventId(String eventId, String status);
+
+    @Modifying
+    @Transactional
+    @Query(value = "UPDATE jobs SET status = :status, updated_at = NOW() WHERE id = :jobId", 
+           nativeQuery = true)
+    int updateStatusByJobId(Long jobId, String status);
 
     
 }

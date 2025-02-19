@@ -1,5 +1,6 @@
-package com.capstone.jfc.dto.event.payload;
+package com.capstone.jfc.dto.event.payload.job;
 
+import com.capstone.jfc.dto.event.payload.StateUpdateEventPayload;
 import com.capstone.jfc.model.FindingState;
 import com.capstone.jfc.model.Tool;
 
@@ -13,10 +14,19 @@ public final class StateUpdateJobEventPayload {
     private Long alertNumber;
     private FindingState updatedState;
     private String service = "github";
+    Long jobId;
+
+    public Long getJobId() {
+        return jobId;
+    }
+
+    public void setJobId(Long jobId) {
+        this.jobId = jobId;
+    }
 
     
     public StateUpdateJobEventPayload(String esFindingId, Long tenantId, Tool tool, String owner, String repository,
-            Long alertNumber, String service, FindingState updatedState) {
+            Long alertNumber, String service, FindingState updatedState, Long jobId) {
         this.esFindingId = esFindingId;
         this.tenantId = tenantId;
         this.tool = tool;
@@ -25,9 +35,10 @@ public final class StateUpdateJobEventPayload {
         this.alertNumber = alertNumber;
         this.service = service;
         this.updatedState = updatedState;
+        this.jobId = jobId;
     }
     public StateUpdateJobEventPayload(String esFindingId, Long tenantId, Tool tool, String owner, String repository,
-            Long alertNumber, FindingState updatedState) {
+            Long alertNumber, FindingState updatedState, Long jobId) {
         this.esFindingId = esFindingId;
         this.tenantId = tenantId;
         this.tool = tool;
@@ -35,6 +46,19 @@ public final class StateUpdateJobEventPayload {
         this.repository = repository;
         this.alertNumber = alertNumber;
         this.updatedState = updatedState;
+        this.jobId = jobId;
+        this.service = "github";
+    }
+
+    public StateUpdateJobEventPayload(Long jobId, StateUpdateEventPayload payload) {
+        this.esFindingId = payload.getEsFindingId();
+        this.tenantId = payload.getTenantId();
+        this.tool = payload.getTool();
+        this.owner = payload.getOwner();
+        this.repository = payload.getRepository();
+        this.alertNumber = payload.getAlertNumber();
+        this.updatedState = payload.getUpdatedState();
+        this.jobId = jobId;
         this.service = "github";
     }
 

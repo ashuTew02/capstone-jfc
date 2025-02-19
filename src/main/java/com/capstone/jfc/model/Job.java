@@ -1,8 +1,5 @@
 package com.capstone.jfc.model;
 
-import com.capstone.jfc.model.EventType;
-import com.capstone.jfc.model.JobStatus;
-import com.capstone.jfc.model.Tool;
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
@@ -42,6 +39,17 @@ public class Job {
 
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
+
+    @Column(name = "dest_topic")
+    private KafkaTopic destTopic;
+
+    public KafkaTopic getDestTopic() {
+        return destTopic;
+    }
+
+    public void setDestTopic(KafkaTopic destTopic) {
+        this.destTopic = destTopic;
+    }
 
     public Job() {
     }

@@ -2,21 +2,21 @@ package com.capstone.jfc.dto.event;
 
 import java.util.UUID;
 
-import com.capstone.jfc.dto.event.payload.ScanRequestJobEventPayload;
+import com.capstone.jfc.dto.event.payload.ScanRequestEventPayload;
 import com.capstone.jfc.model.EventType;
 
-public final class ScanRequestJobEvent implements Event<ScanRequestJobEventPayload> {
-    private ScanRequestJobEventPayload payload;
+public final class ScanRequestEvent implements Event<ScanRequestEventPayload> {
+    private ScanRequestEventPayload payload;
     private String eventId;
-    private EventType type = EventType.SCAN_REQUEST_JOB;
+    private EventType type = EventType.SCAN_REQUEST;
 
 
-    public ScanRequestJobEvent(ScanRequestJobEventPayload payload) {
+    public ScanRequestEvent(ScanRequestEventPayload payload) {
         this.eventId = UUID.randomUUID().toString();
         this.payload = payload;
     }
 
-    public ScanRequestJobEvent() {
+    public ScanRequestEvent() {
         this.eventId = UUID.randomUUID().toString();
     }
 
@@ -26,7 +26,7 @@ public final class ScanRequestJobEvent implements Event<ScanRequestJobEventPaylo
     }
 
     @Override
-    public ScanRequestJobEventPayload getPayload() {
+    public ScanRequestEventPayload getPayload() {
         return payload;
     }
 

@@ -3,10 +3,10 @@ package com.capstone.jfc.kafka;
 import com.capstone.jfc.dto.event.AckScanParseJobEvent;
 import com.capstone.jfc.dto.event.AckScanRequestJobEvent;
 import com.capstone.jfc.dto.event.AckStateUpdateJobEvent;
-import com.capstone.jfc.dto.event.ScanParseJobEvent;
-import com.capstone.jfc.dto.event.ScanRequestJobEvent;
-import com.capstone.jfc.dto.event.StateUpdateJobEvent;
 import com.capstone.jfc.dto.event.Event;
+import com.capstone.jfc.dto.event.ScanParseEvent;
+import com.capstone.jfc.dto.event.ScanRequestEvent;
+import com.capstone.jfc.dto.event.StateUpdateEvent;
 import com.capstone.jfc.dto.event.payload.AckJobEventPayload;
 import com.capstone.jfc.service.JfcJobService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -26,33 +26,19 @@ public class JfcKafkaConsumer {
         this.jfcJobService = jfcJobService;
     }
 
-    @KafkaListener(topics = {"toolscheduler_jfc"}, groupId = "jfc-consumer-group")
-    public void onToolSchedulerEventReceived(String message) {
+    @KafkaListener(topics = "#{T(com.capstone.jfc.model.KafkaTopic).JOBINGESTION_JFC.getTopicName()}", groupId = "jfc-consumer-group")   //CHECK IF SOMETHING GOES WRONG...
+    public void onEventReceived(String message) {
+        System.out.println("HURRRAYYYYYYYY");
         try {
             Event<?> event = decodeEvent(message);
 
-            if (event instanceof ScanParseJobEvent spEvent) {
-                System.out.println("6. JFC listens to ScanParseJobEvent on parser topic. id: " + spEvent.getEventId());
-                // Create a job in READY status
-                jfcJobService.createJobFromEvent(spEvent, spEvent.getPayload().getTool(), spEvent.getPayload().getTenantId());
-                System.out.println("7. JFC creates ScanParseJobEvent and saves to db. id: " + spEvent.getEventId());
-            }
-            // Acks are handled in a separate method
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    @KafkaListener(topics = "authserver_jfc", groupId = "jfc-consumer-group")
-    public void onAuthServerEventReceived(String message) {
-        try {
-            Event<?> event = decodeEvent(message);
-
-            if (event instanceof ScanRequestJobEvent srEvent) {
-                System.out.println("2. JFC Received ScanRequestJobEvent id: " + srEvent.getEventId());
-                jfcJobService.createJobFromEvent(srEvent, srEvent.getPayload().getTool(), srEvent.getPayload().getTenantId());
-            } else if (event instanceof StateUpdateJobEvent suEvent) {
-                jfcJobService.createJobFromEvent(suEvent, suEvent.getPayload().getTool(), suEvent.getPayload().getTenantId());
+            if (event instanceof ScanParseEvent spEvent) {
+                jfcJobService.createScanParseJobFromEvent(spEvent, spEvent.getPayload().getTool(), spEvent.getPayload().getTenantId(), spEvent.getPayload().getDestTopic());
+            } else if (event instanceof ScanRequestEvent srEvent) {
+                jfcJobService.createScanRequestJobFromEvent(srEvent, srEvent.getPayload().getTool(), srEvent.getPayload().getTenantId(), srEvent.getPayload().getDestTopic());
+            } else if (event instanceof StateUpdateEvent suEvent) {
+                System.out.println("SU EVENT:::"+suEvent.getPayload().toString());
+                jfcJobService.createStateUpdateJobFromEvent(suEvent, suEvent.getPayload().getTool(), suEvent.getPayload().getTenantId(), suEvent.getPayload().getDestTopic());
             }
             // Acks are handled in a separate method
         } catch (Exception e) {
@@ -68,18 +54,15 @@ public class JfcKafkaConsumer {
 
             if (event instanceof AckScanRequestJobEvent ackReqEvent) {
                 AckJobEventPayload payload = ackReqEvent.getPayload();
-                // Thread.sleep(5000);
+                Thread.sleep(5000);
                 jfcJobService.updateJobStatus(payload.getJobId(), payload.getJobStatus());
-                System.out.println("5.1 JFC Received AckScanRequestJobEvent id: " + ackReqEvent.getEventId() + " and sets status to SUCCESS.");
             } else if (event instanceof AckScanParseJobEvent ackParseEvent) {
-                // Thread.sleep(5000);
+                Thread.sleep(5000);
                 AckJobEventPayload payload = ackParseEvent.getPayload();
                 jfcJobService.updateJobStatus(payload.getJobId(), payload.getJobStatus());
-                System.out.println("12. JFC Received AckScanParseJobEvent id: " + ackParseEvent.getEventId() + " and sets status to SUCCESS.");
             } else if (event instanceof AckStateUpdateJobEvent ackUpdateEvent) {
                 AckJobEventPayload payload = ackUpdateEvent.getPayload();
                 jfcJobService.updateJobStatus(payload.getJobId(), payload.getJobStatus());
-                System.out.println("JFC Received AckStateUpdateJobEvent id: " + ackUpdateEvent.getEventId() + " and sets status to SUCCESS.");
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -88,12 +71,13 @@ public class JfcKafkaConsumer {
 
     private Event<?> decodeEvent(String json) throws Exception {
         // Basic JSON detection approach (or a more sophisticated one if you have type fields)
-        if (json.contains("\"SCAN_REQUEST_JOB\"")) {
-            return objectMapper.readValue(json, ScanRequestJobEvent.class);
-        } else if (json.contains("\"SCAN_PARSE_JOB\"")) {
-            return objectMapper.readValue(json, ScanParseJobEvent.class);
-        } else if (json.contains("\"STATE_UPDATE_JOB\"")) {
-            return objectMapper.readValue(json, StateUpdateJobEvent.class);
+        if (json.contains("\"SCAN_REQUEST\"")) {
+            return objectMapper.readValue(json, ScanRequestEvent.class);
+        } else if (json.contains("\"SCAN_PARSE\"")) {
+            return objectMapper.readValue(json, ScanParseEvent.class);
+        } else if (json.contains("\"STATE_UPDATE\"")) {
+            System.out.println("KNOCK KNOCK");
+            return objectMapper.readValue(json, StateUpdateEvent.class);
         } else if (json.contains("\"ACK_SCAN_REQUEST_JOB\"")) {
             return objectMapper.readValue(json, AckScanRequestJobEvent.class);
         } else if (json.contains("\"ACK_SCAN_PARSE_JOB\"")) {
