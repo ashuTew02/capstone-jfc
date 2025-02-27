@@ -130,4 +130,11 @@ public class Job {
     public LocalDateTime getUpdatedAt() {
         return updatedAt;
     }
+
+    @Override
+    public String toString() {
+        return "Job [id=" + id + ", eventId=" + eventId + ", eventType=" + eventType + ", status=" + status + ", tool="
+                + tool + ", tenantId=" + tenantId + ", payload=" + payload + ", createdAt=" + createdAt + ", updatedAt="
+                + updatedAt + ", destTopic=" + destTopic + "]";
+    }
 }

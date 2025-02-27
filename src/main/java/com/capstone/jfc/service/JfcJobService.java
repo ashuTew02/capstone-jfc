@@ -3,18 +3,30 @@ package com.capstone.jfc.service;
 import com.capstone.jfc.model.EventType;
 import com.capstone.jfc.model.Job;
 import com.capstone.jfc.dto.event.Event;
+import com.capstone.jfc.dto.event.RunbookTriggerEvent;
 import com.capstone.jfc.dto.event.ScanParseEvent;
 import com.capstone.jfc.dto.event.ScanRequestEvent;
 import com.capstone.jfc.dto.event.StateUpdateEvent;
+import com.capstone.jfc.dto.event.job.RunbookTriggerJobEvent;
 import com.capstone.jfc.dto.event.job.ScanParseJobEvent;
 import com.capstone.jfc.dto.event.job.ScanRequestJobEvent;
 import com.capstone.jfc.dto.event.job.StateUpdateJobEvent;
+import com.capstone.jfc.dto.event.payload.RunbookTriggerEventPayload;
 import com.capstone.jfc.dto.event.payload.ScanParseEventPayload;
 import com.capstone.jfc.dto.event.payload.ScanRequestEventPayload;
 import com.capstone.jfc.dto.event.payload.StateUpdateEventPayload;
+import com.capstone.jfc.dto.event.payload.job.RunbookTriggerJobEventPayload;
 import com.capstone.jfc.dto.event.payload.job.ScanParseJobEventPayload;
 import com.capstone.jfc.dto.event.payload.job.ScanRequestJobEventPayload;
 import com.capstone.jfc.dto.event.payload.job.StateUpdateJobEventPayload;
+import com.capstone.jfc.dto.event.payload.job.TicketCreateJobEventPayload;
+import com.capstone.jfc.dto.event.payload.job.TicketUpdateStatusJobEventPayload;
+import com.capstone.jfc.dto.event.payload.ticket.TicketCreateEventPayload;
+import com.capstone.jfc.dto.event.payload.ticket.TicketUpdateStatusEventPayload;
+import com.capstone.jfc.dto.event.ticket.TicketCreateEvent;
+import com.capstone.jfc.dto.event.ticket.TicketUpdateStatusEvent;
+import com.capstone.jfc.dto.event.ticket.job.TicketCreateJobEvent;
+import com.capstone.jfc.dto.event.ticket.job.TicketUpdateStatusJobEvent;
 import com.capstone.jfc.model.JobStatus;
 import com.capstone.jfc.model.KafkaTopic;
 import com.capstone.jfc.model.Tool;
@@ -163,5 +175,96 @@ public class JfcJobService {
             // updateJobStatus(eventId, status)
 
         }
+    }
+
+    public Job createTicketUpdateStatusJobFromEvent(TicketUpdateStatusEvent event, Tool tool, Long tenantId, KafkaTopic destTopic) {
+        Job job = new Job();
+        job.setTool(tool);
+        job.setTenantId(tenantId);
+        job.setStatus(JobStatus.READY);
+        job.setDestTopic(destTopic);
+        job.setEventId(event.getEventId());
+        job.setEventType(EventType.TICKET_UPDATE_STATUS_JOB);
+        Job savedJob = jobRepository.save(job);
+        TicketUpdateStatusEventPayload payload = event.getPayload();
+        TicketUpdateStatusJobEventPayload newPayload = new TicketUpdateStatusJobEventPayload(payload, job.getId());
+        TicketUpdateStatusJobEvent newEvent = new TicketUpdateStatusJobEvent(newPayload);
+        job.setEventId(newEvent.getEventId());
+
+        try {
+            String payloadString = objectMapper.writeValueAsString(newEvent);
+            savedJob.setPayload(payloadString);
+            System.out.println("Job Created from event at JFC Job Service: " + payloadString);
+        } catch (JsonProcessingException e) {
+            // In production, handle properly or throw a custom exception
+            savedJob.setPayload("{}");
+            System.out.println(e.getMessage());
+        }
+
+        return jobRepository.save(savedJob);
+    }
+
+    public Job createTicketCreateJobFromEvent(TicketCreateEvent event, Tool tool, Long tenantId, KafkaTopic destTopic) {
+        Job job = new Job();
+        job.setTool(tool);
+        job.setTenantId(tenantId);
+        job.setStatus(JobStatus.READY);
+        job.setDestTopic(destTopic);
+        job.setEventId(event.getEventId());
+        job.setEventType(EventType.TICKET_CREATE_JOB);
+        Job savedJob = jobRepository.save(job);
+        TicketCreateEventPayload payload = event.getPayload();
+        TicketCreateJobEventPayload newPayload = new TicketCreateJobEventPayload(payload, job.getId());
+        TicketCreateJobEvent newEvent = new TicketCreateJobEvent(newPayload);
+        job.setEventId(newEvent.getEventId());
+
+        try {
+            String payloadString = objectMapper.writeValueAsString(newEvent);
+            savedJob.setPayload(payloadString);
+            System.out.println("Job Created from event at JFC Job Service: " + payloadString);
+        } catch (JsonProcessingException e) {
+            // In production, handle properly or throw a custom exception
+            savedJob.setPayload("{}");
+            System.out.println(e.getMessage());
+        }
+
+        return jobRepository.save(savedJob);
+    }
+
+    public Job createRunbookTriggerJobFromEvent(RunbookTriggerEvent event, Tool tool, Long tenantId, KafkaTopic destTopic) {
+        Job job = new Job();
+        job.setTool(tool);
+        job.setTenantId(tenantId);
+        job.setStatus(JobStatus.READY);
+        job.setDestTopic(destTopic);
+        job.setEventId(event.getEventId());
+        job.setEventType(EventType.RUNBOOK_TRIGGER_JOB);
+        Job savedJob = jobRepository.save(job);
+        System.out.println(savedJob.toString());
+        RunbookTriggerEventPayload payload = event.getPayload();
+        System.out.println("HEELLOOOO000000");
+
+        RunbookTriggerJobEventPayload newPayload = new RunbookTriggerJobEventPayload( job.getId(), payload);
+        System.out.println("WORLD000000");
+        
+        RunbookTriggerJobEvent newEvent = new RunbookTriggerJobEvent(newPayload);
+        job.setEventId(newEvent.getEventId());
+        System.out.println("HEELLOOOO9090909");
+
+        try {
+            System.out.println("HEELLOOOO11111");
+            String payloadString = objectMapper.writeValueAsString(newEvent);
+            savedJob.setPayload(payloadString);
+            System.out.println("HEELLOOOO222222");
+
+            System.out.println("Job Created from event at JFC Job Service: " + payloadString);
+        } catch (JsonProcessingException e) {
+            // In production, handle properly or throw a custom exception
+            savedJob.setPayload("{}");
+            System.out.println(e.getMessage());
+        }
+        System.out.println("HEELLOOOO3333");
+
+        return jobRepository.save(savedJob);
     }
 }
