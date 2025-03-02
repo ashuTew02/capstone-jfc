@@ -69,10 +69,10 @@ public class JfcKafkaConsumer {
 
             if (event instanceof AckScanRequestJobEvent ackReqEvent) {
                 AckJobEventPayload payload = ackReqEvent.getPayload();
-                Thread.sleep(5000);
+                // Thread.sleep(5000);
                 jfcJobService.updateJobStatus(payload.getJobId(), payload.getJobStatus());
             } else if (event instanceof AckScanParseJobEvent ackParseEvent) {
-                Thread.sleep(5000);
+                // Thread.sleep(5000);
                 AckJobEventPayload payload = ackParseEvent.getPayload();
                 jfcJobService.updateJobStatus(payload.getJobId(), payload.getJobStatus());
             } else if (event instanceof AckStateUpdateJobEvent ackUpdateEvent) {
@@ -120,9 +120,9 @@ public class JfcKafkaConsumer {
         } 
         
         
-        else if (json.contains("\"ACK_TICKET_UPDATE_STATUS\"")) {
+        else if (json.contains("\"ACK_TICKET_UPDATE_STATUS_JOB\"")) {
             return objectMapper.readValue(json, AckTicketUpdateStatusJobEvent.class);
-        } else if (json.contains("\"ACK_TICKET_CREATE\"")) {
+        } else if (json.contains("\"ACK_TICKET_CREATE_JOB\"")) {
             return objectMapper.readValue(json, AckTicketCreateJobEvent.class);
         }
 
